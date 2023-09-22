@@ -1,44 +1,55 @@
 import path from "node:path";
 import _ from "lodash";
+import nf from "node-fetch";
 import readExcel, { readFile } from "../../common/excel";
-import sqls from "../../sqls";
 
-export const test = async (dirPath: string) => {
-  const datas = await readFile(dirPath);
-
-  console.log(datas);
-};
-
-const startRead = async (dirPath: string) => {
-  console.log(__dirname);
-
-  console.log(path.parse(dirPath));
+const startRead = async (dirPath: string): Promise<void> => {
+  console.log(
+    `\x1b[32m%s\x1b[33m%s`,
+    `Current path : `,
+    `${path.resolve(dirPath)}`
+  );
 
   try {
-    const zollerExcel = new Array<ZollerExcel>();
-    const queryString = sqls.zollerInsert();
-    const querys = new Array<QueryString<ZollerExcel>>();
-    const datas = await readFile(dirPath, [".xls"]);
+    const zollerDatas = new Array<ZollerData>();
+    const excelFiles = await readFile(dirPath, new Array(".xls"));
 
-    for (const row of datas) {
-      const jsonData = getZollerExcel(readExcel(row));
-      zollerExcel.push(jsonData[jsonData.length - 1]);
-
-      jsonData.map((row) => {
-        querys.push({ queryString, params: row });
-      });
+    for (const excelFile of excelFiles) {
+      zollerDatas.push(...getZollerExcel(readExcel(excelFile)));
     }
 
-    await _execQuery(querys);
-    printResult(zollerExcel);
+    const res = await Promise.all(
+      zollerDatas.map((data) => {
+        return nf(_CONFIG.apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: JSON.stringify(data),
+        });
+      })
+    );
+
+    const succ = _.filter(res, (o) => {
+      return o.status === 200;
+    });
+
+    const fail = _.filter(res, (o) => {
+      return o.status !== 200;
+    });
+
+    console.log(`\x1b[37m%s`, `성공 : ${succ.length}`, `실패 : ${fail.length}`);
+
+    printResult(zollerDatas);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
-      _LOG.error(err.message);
     }
-  } finally {
-    setTimeout((dirPath: string) => startRead(dirPath), 15000);
   }
+
+  setTimeout(() => {
+    startRead(dirPath);
+  }, 15000);
 };
 
 const getZollerExcel = ({
@@ -48,7 +59,7 @@ const getZollerExcel = ({
   filePath: string;
   jsonData: any[];
 }) => {
-  const result: ZollerExcel[] = [];
+  const result: ZollerData[] = [];
 
   const jobOrderNo = _toString(
     path.dirname(filePath).toString().split(path.sep).pop()
@@ -78,18 +89,24 @@ const getZollerExcel = ({
   return result;
 };
 
-interface JobOrderTable {
-  jobOrderNo: string;
-  xCount: number;
-  xMin: number;
-  xMax: number;
-  step: number;
-}
+const printResult = (zollerDatas: ZollerData[]): void => {
+  if (zollerDatas.length === 0) return;
 
-const printResult = (zollerExcel: ZollerExcel[]): void => {
-  const jobOrderTable = new Array<JobOrderTable>();
+  const maxData = _.filter(zollerDatas, (o) => {
+    const obj = _.filter(zollerDatas, (p) => {
+      return o.jobOrderNo === p.jobOrderNo;
+    });
 
-  zollerExcel.map((el) => {
+    const maxSeqNo = _.maxBy(obj, (p) => {
+      return p.seqNo;
+    })?.seqNo;
+
+    return o.seqNo === maxSeqNo;
+  });
+
+  const jobOrderTable = new Array<SendStatus>();
+
+  maxData.map((el) => {
     const idx = _.findIndex(jobOrderTable, (row) => {
       return row.jobOrderNo === el.jobOrderNo;
     });

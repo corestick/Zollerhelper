@@ -1,3 +1,3 @@
 interface Config {
-  mssql: { [connName: string]: sql.config };
+  apiUrl: string;
 }

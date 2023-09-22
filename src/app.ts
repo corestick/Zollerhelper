@@ -1,8 +1,7 @@
-import startRead, { test } from "./modules/zollerexcel";
+import startRead from "./modules/zollerexcel";
 
 const start = () => {
-  //startRead("./");
-  test("./");
+  startRead("./");
 };
 
 export default start;

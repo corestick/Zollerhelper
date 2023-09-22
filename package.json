@@ -9,25 +9,24 @@
   "scripts": {
     "build": "tsc --build --clean && tsc && pkg . --targets node18-win-x64",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc --build --clean && tsc && node ./dist/index.js",
+    "start": "rm -rf ./dist/ && tsc && node ./dist/index.js",
     "dev": "nodemon --watch \"*.ts\" --exec \"ts-node\" ./src/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/lodash": "^4.14.198",
-    "fast-xml-parser": "^4.3.0",
     "lodash": "^4.17.21",
-    "mssql": "^10.0.1",
+    "node-fetch": "^2.7.0",
     "read-excel-file": "^5.6.1",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@types/mssql": "^9.1.0",
+    "@types/lodash": "^4.14.198",
     "@types/node": "^20.6.0",
+    "@types/node-fetch": "^2.6.5",
     "@typescript-eslint/eslint-plugin": "^6.6.0",
     "@typescript-eslint/parser": "^6.6.0",
     "eslint": "^8.49.0",

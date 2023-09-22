@@ -4,13 +4,4 @@ class DBError extends Error {
   }
 }
 
-class QueryXMLError extends Error {
-  constructor(message: string) {
-    super(message || "Query xml Error");
-  }
-}
-
-export default {
-  DBError,
-  QueryXMLError,
-};
+export default {};

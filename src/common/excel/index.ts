@@ -15,31 +15,7 @@ const readExcel = (excelPath: string) => {
 
 export const readFile = async (
   basePath: string,
-  ext?: string[]
-): Promise<string[]> => {
-  const result: string[] = new Array<string>();
-
-  console.log(`readFile [${basePath}]`);
-
-  const files = await fs.promises.readdir(basePath, {
-    withFileTypes: true,
-  });
-
-  console.log(result);
-
-  for (const el of files) {
-    const childPath = path.join(basePath, el.name);
-    result.push(childPath);
-  }
-
-  console.log(result);
-
-  return result;
-};
-
-export const readFile2 = async (
-  basePath: string,
-  ext?: string[]
+  exts?: string[]
 ): Promise<string[]> => {
   const result: string[] = new Array<string>();
 
@@ -48,13 +24,13 @@ export const readFile2 = async (
       withFileTypes: true,
     });
 
-    for (const el of files) {
-      const childPath = path.join(basePath, el.name);
+    for (const file of files) {
+      const childPath = path.join(basePath, file.name);
 
-      if (el.isDirectory()) {
-        result.push(...(await readFile(childPath)));
+      if (file.isDirectory()) {
+        result.push(...(await readFile(childPath, exts)));
       } else {
-        if (ext?.includes(path.extname(el.name))) {
+        if (!exts || exts.includes(path.extname(file.name))) {
           result.push(childPath);
         }
       }
@@ -62,7 +38,6 @@ export const readFile2 = async (
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
-      _LOG.error(err.message);
     }
   }
 
