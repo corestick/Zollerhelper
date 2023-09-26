@@ -5,12 +5,6 @@ import readExcel, { readFile } from "../../common/excel";
 import jsonDB from "./jsondb";
 
 const startRead = async (dirPath: string): Promise<void> => {
-  console.log(
-    `\x1b[32m%s\x1b[33m%s\x1b[37m`,
-    `Current path : `,
-    `${path.resolve(dirPath)}`
-  );
-
   try {
     const excelFilePaths: string[] = await readFile(dirPath, new Array(".xls"));
     const zollerExcelFiles: ZollerExcelFile[] = await Promise.all(
@@ -21,6 +15,13 @@ const startRead = async (dirPath: string): Promise<void> => {
     );
 
     const filteredZollerFiles = await jsonDB.filterJobOrder(zollerExcelFiles);
+
+    if (filteredZollerFiles.length > 0)
+      console.log(
+        `\x1b[32m%s\x1b[33m%s\x1b[37m`,
+        `현재경로 : `,
+        `${path.resolve(dirPath)}`
+      );
 
     const sendData = _.flatten(
       filteredZollerFiles.map((datas) => {
@@ -62,13 +63,14 @@ const startRead = async (dirPath: string): Promise<void> => {
 
     await jsonDB.pushJobOrder(succDatas);
 
-    console.table([
-      {
-        대상: sendData.length,
-        성공: succ.length,
-        실패: fail.length,
-      },
-    ]);
+    if (sendData.length > 0)
+      console.table([
+        {
+          대상: sendData.length,
+          성공: succ.length,
+          실패: fail.length,
+        },
+      ]);
 
     printResult(succDatas);
   } catch (err: unknown) {
