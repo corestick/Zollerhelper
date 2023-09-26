@@ -1,0 +1,50 @@
+import { JsonDB, Config } from "node-json-db";
+
+const createDB = async (dbName: string) => {
+  return new JsonDB(new Config(dbName, true, true, "/"));
+};
+
+const pushJobOrder = async (datas: ZollerExcel[]): Promise<void> => {
+  const db = await createDB("JobOrder");
+
+  Promise.all(
+    datas.map(async (data) => {
+      if (data.jobOrderNo === undefined || data.xNo === undefined) return;
+
+      const path = `/JobOrder/${data.jobOrderNo}/${data.xNo}`;
+      const row = await db.getObjectDefault<string>(path, "");
+
+      if (row === "") {
+        await db.push(path, data.xNo);
+      } else {
+        console.log(path, row);
+      }
+    })
+  );
+};
+
+const filterJobOrder = async (
+  datas: ZollerExcelFile[]
+): Promise<ZollerExcelFile[]> => {
+  const db = await createDB("JobOrder");
+  const result = new Array<ZollerExcelFile>();
+
+  await Promise.all(
+    datas.map(async (data) => {
+      const path = `/JobOrder/${data.jobOrderNo}/${data.xNo}`;
+      const row = await db.getObjectDefault<string>(path, "");
+
+      if (_toString(row) === "") {
+        result.push(data);
+      }
+    })
+  );
+
+  return result;
+};
+
+const truncateJobOrder = async (db: JsonDB) => {
+  await db.delete("/");
+};
+
+export default { filterJobOrder, pushJobOrder, truncateJobOrder };

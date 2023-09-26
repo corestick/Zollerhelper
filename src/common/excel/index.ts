@@ -2,14 +2,14 @@ import xlsx from "xlsx";
 import fs from "node:fs";
 import path from "node:path";
 
-const readExcel = (excelPath: string) => {
+const readExcel = (excelPath: string): ExcelInfo => {
   const excelFile = xlsx.readFile(excelPath);
   const sheets = excelFile.SheetNames;
   const firstSheet = excelFile.Sheets[sheets[0]];
 
   return {
     filePath: excelPath,
-    jsonData: xlsx.utils.sheet_to_json(firstSheet, { defval: "" }),
+    jsonDatas: xlsx.utils.sheet_to_json(firstSheet, { defval: "" }),
   };
 };
 

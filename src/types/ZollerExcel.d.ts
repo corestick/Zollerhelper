@@ -1,6 +1,13 @@
-interface ZollerData {
+interface ZollerExcel {
   jobOrderNo: string;
   xNo: number;
+}
+
+interface ZollerExcelFile extends ZollerExcel {
+  sheetDatas: ZollerExcelData[];
+}
+
+interface ZollerExcelData {
   seqNo: number;
   stepNo: number;
   result: string;
@@ -9,17 +16,4 @@ interface ZollerData {
   lTol?: number;
   actValue: number;
   diffValue: number;
-}
-
-interface SendStatus {
-  jobOrderNo: string;
-  xCount: number;
-  xMin: number;
-  xMax: number;
-  step: number;
-}
-
-interface SendData {
-  jobOrderNo: string;
-  xNo: number;
 }

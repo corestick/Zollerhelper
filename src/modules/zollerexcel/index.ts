@@ -1,26 +1,41 @@
 import path from "node:path";
 import _ from "lodash";
-import nf from "node-fetch";
+import nodeFetch from "node-fetch";
 import readExcel, { readFile } from "../../common/excel";
+import jsonDB from "./jsondb";
 
 const startRead = async (dirPath: string): Promise<void> => {
   console.log(
-    `\x1b[32m%s\x1b[33m%s`,
+    `\x1b[32m%s\x1b[33m%s\x1b[37m`,
     `Current path : `,
     `${path.resolve(dirPath)}`
   );
 
   try {
-    const zollerDatas = new Array<ZollerData>();
-    const excelFiles = await readFile(dirPath, new Array(".xls"));
+    const excelFilePaths: string[] = await readFile(dirPath, new Array(".xls"));
+    const zollerExcelFiles: ZollerExcelFile[] = await Promise.all(
+      excelFilePaths.map((excelPath) => {
+        const excelData: ExcelInfo = readExcel(excelPath);
+        return convertZollerExcel(excelData);
+      })
+    );
 
-    for (const excelFile of excelFiles) {
-      zollerDatas.push(...getZollerExcel(readExcel(excelFile)));
-    }
+    const filteredZollerFiles = await jsonDB.filterJobOrder(zollerExcelFiles);
+
+    const sendData = _.flatten(
+      filteredZollerFiles.map((datas) => {
+        return datas.sheetDatas.map((data) => {
+          return _.assign(
+            { jobOrderNo: datas.jobOrderNo, xNo: datas.xNo },
+            data
+          );
+        });
+      })
+    );
 
     const res = await Promise.all(
-      zollerDatas.map((data) => {
-        return nf(_CONFIG.apiUrl, {
+      sendData.map((data) => {
+        return nodeFetch(_CONFIG.apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json; charset=UTF-8",
@@ -38,9 +53,24 @@ const startRead = async (dirPath: string): Promise<void> => {
       return o.status !== 200;
     });
 
-    console.log(`\x1b[37m%s`, `성공 : ${succ.length}`, `실패 : ${fail.length}`);
+    const succDatas = await Promise.all(
+      succ.map(async (res) => {
+        const data = JSON.parse(await res.text()).result[0];
+        return { jobOrderNo: data.JobOrderNo, xNo: data.XNo };
+      })
+    );
 
-    printResult(zollerDatas);
+    await jsonDB.pushJobOrder(succDatas);
+
+    console.table([
+      {
+        대상: sendData.length,
+        성공: succ.length,
+        실패: fail.length,
+      },
+    ]);
+
+    printResult(succDatas);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
@@ -52,28 +82,19 @@ const startRead = async (dirPath: string): Promise<void> => {
   }, 15000);
 };
 
-const getZollerExcel = ({
-  filePath,
-  jsonData,
-}: {
-  filePath: string;
-  jsonData: any[];
-}) => {
-  const result: ZollerData[] = [];
-
+const convertZollerExcel = (excelInfo: ExcelInfo): ZollerExcelFile => {
   const jobOrderNo = _toString(
-    path.dirname(filePath).toString().split(path.sep).pop()
+    path.dirname(excelInfo.filePath).toString().split(path.sep).pop()
   );
-  const xNo = _toString(path.parse(filePath).name);
+  const xNo = _toString(path.parse(excelInfo.filePath).name);
+  const sheetDatas = new Array<ZollerExcelData>();
 
-  jsonData.map((el) => {
+  excelInfo.jsonDatas.map((el) => {
     const step: string = el[Object.keys(el)[0]];
     if (step !== "") {
       if (Number(step) > 0) {
-        result.push({
-          jobOrderNo: jobOrderNo,
-          xNo: xNo,
-          seqNo: result.length + 1,
+        sheetDatas.push({
+          seqNo: sheetDatas.length + 1,
           stepNo: Number(step),
           result: _toString(el.__EMPTY),
           nomValue: _toString(el.__EMPTY_2),
@@ -86,46 +107,25 @@ const getZollerExcel = ({
     }
   });
 
-  return result;
+  return {
+    jobOrderNo,
+    xNo,
+    sheetDatas,
+  };
 };
 
-const printResult = (zollerDatas: ZollerData[]): void => {
+const printResult = (zollerDatas: ZollerExcel[]): void => {
   if (zollerDatas.length === 0) return;
 
-  const maxData = _.filter(zollerDatas, (o) => {
-    const obj = _.filter(zollerDatas, (p) => {
-      return o.jobOrderNo === p.jobOrderNo;
-    });
-
-    const maxSeqNo = _.maxBy(obj, (p) => {
-      return p.seqNo;
-    })?.seqNo;
-
-    return o.seqNo === maxSeqNo;
-  });
-
-  const jobOrderTable = new Array<SendStatus>();
-
-  maxData.map((el) => {
-    const idx = _.findIndex(jobOrderTable, (row) => {
-      return row.jobOrderNo === el.jobOrderNo;
-    });
-
-    if (idx === -1)
-      jobOrderTable.push({
-        jobOrderNo: el.jobOrderNo,
-        xCount: 1,
-        xMin: el.xNo,
-        xMax: el.xNo,
-        step: el.stepNo,
-      });
-    else {
-      const jobOrderNo = jobOrderTable[idx];
-      jobOrderNo.xCount++;
-      jobOrderNo.xMin = jobOrderNo.xMin > el.xNo ? el.xNo : jobOrderNo.xMin;
-      jobOrderNo.xMax = jobOrderNo.xMax < el.xNo ? el.xNo : jobOrderNo.xMax;
-    }
-  });
+  const jobOrderTable = _.uniqWith(
+    zollerDatas.map((data) => {
+      return {
+        작지번호: data.jobOrderNo,
+        파일명: data.xNo,
+      };
+    }),
+    _.isEqual
+  );
 
   console.table(jobOrderTable);
 };
