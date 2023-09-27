@@ -13,6 +13,7 @@ module.exports = {
         "./package.json",
         "./pnpm-lock.yaml",
         "./src",
+        "./ZollerHelper.json",
       ],
     },
   ],
