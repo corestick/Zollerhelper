@@ -1,8 +1,8 @@
 import path from "node:path";
 import _ from "lodash";
 import nodeFetch from "node-fetch";
-import readExcel, { readFile } from "../../common/excel";
-import jsonDB from "./jsondb";
+import readExcel, { readFile } from "../../common/excel/index.js";
+import jsonDB from "./jsondb.js";
 
 const startRead = async (dirPath: string): Promise<void> => {
   try {

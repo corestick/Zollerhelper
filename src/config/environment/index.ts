@@ -1,4 +1,4 @@
-import pro from "./config";
+import pro from "./config.js";
 
 const config: Config = JSON.parse(JSON.stringify(pro));
 
