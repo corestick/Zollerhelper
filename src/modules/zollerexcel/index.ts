@@ -99,11 +99,11 @@ const convertZollerExcel = (excelInfo: ExcelInfo): ZollerExcelFile => {
           seqNo: sheetDatas.length + 1,
           stepNo: Number(step),
           result: _toString(el.__EMPTY),
-          nomValue: _toString(el.__EMPTY_2),
-          uTol: _toString(el.__EMPTY_5),
-          lTol: _toString(el.__EMPTY_7),
-          actValue: _toString(el.__EMPTY_9),
-          diffValue: _toString(el.__EMPTY_14),
+          nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
+          uTol: _toString(el.__EMPTY_5).replace(/\\/g, ""),
+          lTol: _toString(el.__EMPTY_7).replace(/\\/g, ""),
+          actValue: _toString(el.__EMPTY_9).replace(/\\/g, ""),
+          diffValue: _toString(el.__EMPTY_14).replace(/\\/g, ""),
         });
       }
     }
