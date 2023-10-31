@@ -1,12 +1,50 @@
+import fs from "node:fs";
 import path from "node:path";
 import _ from "lodash";
 import nodeFetch from "node-fetch";
-import readExcel, { readFile } from "../../common/excel/index.js";
+import readExcel from "../../common/excel/index.js";
 import jsonDB from "./jsondb.js";
 
+let arrPath: string[] = [];
+let baseDate = Date.now();
+
+const watchingDir = async (dirPath: string) => {
+  fs.watch(
+    dirPath,
+    {
+      recursive: true,
+    },
+    (eventType, fullPath) => {
+      if (fullPath && eventType === "change") {
+        const fileName = path.parse(fullPath).name;
+        const ext = path.parse(fullPath).ext;
+
+        if (fileName === _.toNumber(fileName).toString()) {
+          if (ext === ".xls") {
+            if (!arrPath.includes(fullPath)) {
+              arrPath.push(path.join(dirPath, fullPath));
+              arrPath = _.uniq(arrPath);
+              baseDate = Date.now() + 3000;
+            }
+          }
+        }
+      }
+    }
+  );
+};
+
 const startRead = async (dirPath: string): Promise<void> => {
+  watchingDir(dirPath);
+  setInterval(() => {
+    if (arrPath.length > 0 && Date.now() - baseDate > 1000) {
+      sendExcel();
+    }
+  }, 3000);
+};
+
+const sendExcel = async () => {
   try {
-    const excelFilePaths: string[] = await readFile(dirPath, new Array(".xls"));
+    const excelFilePaths: string[] = arrPath;
     const zollerExcelFiles: ZollerExcelFile[] = await Promise.all(
       excelFilePaths.map((excelPath) => {
         const excelData: ExcelInfo = readExcel(excelPath);
@@ -14,74 +52,76 @@ const startRead = async (dirPath: string): Promise<void> => {
       })
     );
 
-    const filteredZollerFiles = await jsonDB.filterJobOrder(zollerExcelFiles);
+    const filteredZollerFiles = await jsonDB.filterJobOrders(zollerExcelFiles);
 
-    if (filteredZollerFiles.length > 0)
+    if (filteredZollerFiles.length > 0) {
       console.log(
         `\x1b[32m%s\x1b[33m%s\x1b[37m`,
-        `현재경로 : `,
-        `${path.resolve(dirPath)}`
+        `대상파일 : `,
+        `${filteredZollerFiles.length} 개`
       );
 
-    const sendData = _.flatten(
-      filteredZollerFiles.map((datas) => {
-        return datas.sheetDatas.map((data) => {
-          return _.assign(
-            { jobOrderNo: datas.jobOrderNo, xNo: datas.xNo },
-            data
-          );
-        });
-      })
-    );
+      const sendData = _.flatten(
+        filteredZollerFiles.map((datas) => {
+          return datas.sheetDatas.map((data) => {
+            return _.assign(
+              { jobOrderNo: datas.jobOrderNo, xNo: datas.xNo },
+              data
+            );
+          });
+        })
+      );
 
-    const res = await Promise.all(
-      sendData.map((data) => {
-        return nodeFetch(_CONFIG.apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
+      const res = await Promise.all(
+        sendData.map((data) => {
+          return nodeFetch(_CONFIG.apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json; charset=UTF-8",
+            },
+            body: JSON.stringify(data),
+          });
+        })
+      );
+
+      const succ = _.filter(res, (o) => {
+        return o.status === 200;
+      });
+
+      const fail = _.filter(res, (o) => {
+        return o.status !== 200;
+      });
+
+      const succDatas = await Promise.all(
+        succ.map(async (res) => {
+          const data = JSON.parse(await res.text()).result[0];
+          return { jobOrderNo: data.JobOrderNo, xNo: data.XNo };
+        })
+      );
+
+      await jsonDB.pushJobOrder(succDatas);
+
+      if (sendData.length > 0) {
+        console.table([
+          {
+            대상: sendData.length,
+            성공: succ.length,
+            실패: fail.length,
           },
-          body: JSON.stringify(data),
-        });
-      })
-    );
+        ]);
+      }
 
-    const succ = _.filter(res, (o) => {
-      return o.status === 200;
-    });
+      printResult(succDatas);
+    }
 
-    const fail = _.filter(res, (o) => {
-      return o.status !== 200;
-    });
-
-    const succDatas = await Promise.all(
-      succ.map(async (res) => {
-        const data = JSON.parse(await res.text()).result[0];
-        return { jobOrderNo: data.JobOrderNo, xNo: data.XNo };
-      })
-    );
-
-    await jsonDB.pushJobOrder(succDatas);
-
-    if (sendData.length > 0)
-      console.table([
-        {
-          대상: sendData.length,
-          성공: succ.length,
-          실패: fail.length,
-        },
-      ]);
-
-    printResult(succDatas);
+    _.remove(arrPath);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
     }
-  }
 
-  setTimeout(() => {
-    startRead(dirPath);
-  }, 15000);
+    baseDate = Date.now() + 30000;
+  }
 };
 
 const convertZollerExcel = (excelInfo: ExcelInfo): ZollerExcelFile => {

@@ -26,7 +26,7 @@ const pushJobOrder = async (datas: ZollerExcel[]): Promise<void> => {
   );
 };
 
-const filterJobOrder = async (
+const filterJobOrders = async (
   datas: ZollerExcelFile[]
 ): Promise<ZollerExcelFile[]> => {
   const db = await createDB(DB_NAME);
@@ -50,4 +50,8 @@ const truncateJobOrder = async (db: JsonDB) => {
   await db.delete("/");
 };
 
-export default { filterJobOrder, pushJobOrder, truncateJobOrder };
+export default {
+  filterJobOrders,
+  pushJobOrder,
+  truncateJobOrder,
+};
