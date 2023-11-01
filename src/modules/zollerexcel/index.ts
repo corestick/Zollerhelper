@@ -3,7 +3,6 @@ import path from "node:path";
 import _ from "lodash";
 import nodeFetch from "node-fetch";
 import readExcel from "../../common/excel/index.js";
-import jsonDB from "./jsondb.js";
 
 let arrPath: string[] = [];
 let baseDate = Date.now();
@@ -39,10 +38,12 @@ const startRead = async (dirPath: string): Promise<void> => {
 };
 
 const sendExcel = async () => {
-  try {
-    const excelFilePaths: string[] = [];
+  console.log("sendExcel : ", arrPath.length.toString());
 
-    while (arrPath.length > 0 && excelFilePaths.length < 100) {
+  const excelFilePaths: string[] = [];
+
+  try {
+    while (arrPath.length > 0 && excelFilePaths.length < 10) {
       const strPath = arrPath.pop();
       if (strPath !== undefined) excelFilePaths.push(strPath);
       else break;
@@ -55,17 +56,15 @@ const sendExcel = async () => {
       })
     );
 
-    const filteredZollerFiles = await jsonDB.filterJobOrders(zollerExcelFiles);
-
-    if (filteredZollerFiles.length > 0) {
+    if (zollerExcelFiles.length > 0) {
       console.log(
         `\x1b[32m%s\x1b[33m%s\x1b[37m`,
         `대상파일 : `,
-        `${filteredZollerFiles.length} 개`
+        `${zollerExcelFiles.length} 개`
       );
 
       const sendData = _.flatten(
-        filteredZollerFiles.map((datas) => {
+        zollerExcelFiles.map((datas) => {
           return datas.sheetDatas.map((data) => {
             return _.assign(
               { jobOrderNo: datas.jobOrderNo, xNo: datas.xNo },
@@ -102,8 +101,6 @@ const sendExcel = async () => {
         })
       );
 
-      await jsonDB.pushJobOrder(succDatas);
-
       if (sendData.length > 0) {
         console.table([
           {
@@ -114,13 +111,28 @@ const sendExcel = async () => {
         ]);
       }
 
-      printResult(succDatas);
+      if(fail.length > 0)
+      {
+        while(excelFilePaths.length > 0)
+        {
+          const strPath = excelFilePaths.pop();
+          if(strPath !== undefined)
+            arrPath.push(strPath);
+        }
+      }
+      else
+        printResult(succDatas);
     }
-
-    _.remove(arrPath);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
+    }
+
+    while(excelFilePaths.length > 0)
+    {
+      const strPath = excelFilePaths.pop();
+      if(strPath !== undefined)
+        arrPath.push(strPath);
     }
 
     baseDate = Date.now() + 30000;
