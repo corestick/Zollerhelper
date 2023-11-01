@@ -49,22 +49,32 @@ const sendExcel = async () => {
       else break;
     }
 
-    const zollerExcelFiles: ZollerExcelFile[] = await Promise.all(
-      excelFilePaths.map((excelPath) => {
-        const excelData: ExcelInfo = readExcel(excelPath);
-        return convertZollerExcel(excelData);
-      })
-    );
+    const zollerExcelFiles: Array<ZollerExcelFile | undefined> =
+      await Promise.all(
+        excelFilePaths.map((excelPath) => {
+          if (!fs.existsSync(excelPath)) return;
 
-    if (zollerExcelFiles.length > 0) {
+          const excelData: ExcelInfo = readExcel(excelPath);
+          return convertZollerExcel(excelData);
+        })
+      );
+
+    const readableFiles: ZollerExcelFile[] = [];
+    zollerExcelFiles.map((el) => {
+      if (el !== undefined) {
+        readableFiles.push(el);
+      }
+    });
+
+    if (readableFiles.length > 0) {
       console.log(
         `\x1b[32m%s\x1b[33m%s\x1b[37m`,
         `대상파일 : `,
-        `${zollerExcelFiles.length} 개`
+        `${readableFiles.length} 개`
       );
 
       const sendData = _.flatten(
-        zollerExcelFiles.map((datas) => {
+        readableFiles.map((datas) => {
           return datas.sheetDatas.map((data) => {
             return _.assign(
               { jobOrderNo: datas.jobOrderNo, xNo: datas.xNo },
@@ -111,28 +121,21 @@ const sendExcel = async () => {
         ]);
       }
 
-      if(fail.length > 0)
-      {
-        while(excelFilePaths.length > 0)
-        {
+      if (fail.length > 0) {
+        while (excelFilePaths.length > 0) {
           const strPath = excelFilePaths.pop();
-          if(strPath !== undefined)
-            arrPath.push(strPath);
+          if (strPath !== undefined) arrPath.push(strPath);
         }
-      }
-      else
-        printResult(succDatas);
+      } else printResult(succDatas);
     }
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
     }
 
-    while(excelFilePaths.length > 0)
-    {
+    while (excelFilePaths.length > 0) {
       const strPath = excelFilePaths.pop();
-      if(strPath !== undefined)
-        arrPath.push(strPath);
+      if (strPath !== undefined) arrPath.push(strPath);
     }
 
     baseDate = Date.now() + 30000;
