@@ -35,16 +35,19 @@ const watchingDir = async (dirPath: string) => {
 
 const startRead = async (dirPath: string): Promise<void> => {
   watchingDir(dirPath);
-  setInterval(() => {
-    if (arrPath.length > 0 && Date.now() - baseDate > 1000) {
-      sendExcel();
-    }
-  }, 3000);
+  sendExcel();
 };
 
 const sendExcel = async () => {
   try {
-    const excelFilePaths: string[] = arrPath;
+    const excelFilePaths: string[] = [];
+
+    while (arrPath.length > 0 && excelFilePaths.length < 100) {
+      const strPath = arrPath.pop();
+      if (strPath !== undefined) excelFilePaths.push(strPath);
+      else break;
+    }
+
     const zollerExcelFiles: ZollerExcelFile[] = await Promise.all(
       excelFilePaths.map((excelPath) => {
         const excelData: ExcelInfo = readExcel(excelPath);
@@ -121,6 +124,10 @@ const sendExcel = async () => {
     }
 
     baseDate = Date.now() + 30000;
+  } finally {
+    const delay = baseDate - Date.now();
+
+    setTimeout(sendExcel, delay > 3000 ? delay : 3000);
   }
 };
 
