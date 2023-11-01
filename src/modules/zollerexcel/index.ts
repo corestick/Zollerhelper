@@ -44,7 +44,7 @@ const sendExcel = async () => {
 
   try {
     while (arrPath.length > 0 && excelFilePaths.length < 10) {
-      const strPath = arrPath.pop();
+      const strPath = arrPath.shift();
       if (strPath !== undefined) excelFilePaths.push(strPath);
       else break;
     }
@@ -123,7 +123,7 @@ const sendExcel = async () => {
 
       if (fail.length > 0) {
         while (excelFilePaths.length > 0) {
-          const strPath = excelFilePaths.pop();
+          const strPath = excelFilePaths.shift();
           if (strPath !== undefined) arrPath.push(strPath);
         }
       } else printResult(succDatas);
@@ -134,7 +134,7 @@ const sendExcel = async () => {
     }
 
     while (excelFilePaths.length > 0) {
-      const strPath = excelFilePaths.pop();
+      const strPath = excelFilePaths.shift();
       if (strPath !== undefined) arrPath.push(strPath);
     }
 
