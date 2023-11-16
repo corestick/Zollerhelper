@@ -1,4 +1,5 @@
 declare global {
+  declare var _LOG: Class;
   declare var _EOL: string;
   declare var _COM: Module;
   declare var _ERR: Module;

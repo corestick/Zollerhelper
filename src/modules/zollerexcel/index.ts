@@ -23,7 +23,7 @@ const watchingDir = async (dirPath: string) => {
             if (!arrPath.includes(fullPath)) {
               arrPath.push(path.join(dirPath, fullPath));
               arrPath = _.uniq(arrPath);
-              baseDate = Date.now() + 3000;
+              baseDate = Date.now() + 5000;
             }
           }
         }
@@ -38,7 +38,7 @@ const startRead = async (dirPath: string): Promise<void> => {
 };
 
 const sendExcel = async () => {
-  console.log("sendExcel : ", arrPath.length.toString());
+  //console.log("sendExcel : ", arrPath.length.toString());
 
   const excelFilePaths: string[] = [];
 
@@ -131,6 +131,7 @@ const sendExcel = async () => {
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.log(err.message);
+      _LOG.error(err.message);
     }
 
     while (excelFilePaths.length > 0) {
@@ -142,7 +143,7 @@ const sendExcel = async () => {
   } finally {
     const delay = baseDate - Date.now();
 
-    setTimeout(sendExcel, delay > 3000 ? delay : 3000);
+    setTimeout(sendExcel, delay > 5000 ? delay : 5000);
   }
 };
 
