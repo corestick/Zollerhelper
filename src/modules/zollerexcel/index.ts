@@ -3,30 +3,34 @@ import path from "node:path";
 import _ from "lodash";
 import nodeFetch from "node-fetch";
 import readExcel from "../../common/excel/index.js";
+import watch from "node-watch";
 
 let arrPath: string[] = [];
 let baseDate = Date.now();
 
 const watchingDir = async (dirPath: string) => {
-  fs.watch(
+  watch(
     dirPath,
     {
+      persistent: false,
       recursive: true,
     },
     (eventType, fullPath) => {
-      if (fullPath && eventType === "change") {
+      if (fullPath && eventType === "update") {
         const fileName = path.parse(fullPath).name;
         const ext = path.parse(fullPath).ext;
 
         if (fileName === _.toNumber(fileName).toString()) {
           if (ext === ".xls") {
             if (!arrPath.includes(fullPath)) {
-              arrPath.push(path.join(dirPath, fullPath));
+              arrPath.push(fullPath);
               arrPath = _.uniq(arrPath);
               baseDate = Date.now() + 5000;
             }
           }
         }
+
+        console.log(`${new Date().toLocaleTimeString()}`, arrPath);
       }
     }
   );

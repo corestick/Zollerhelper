@@ -17,6 +17,9 @@ dependencies:
   node-json-db:
     specifier: ^2.2.0
     version: 2.2.0
+  node-watch:
+    specifier: ^0.7.4
+    version: 0.7.4
   read-excel-file:
     specifier: ^5.6.1
     version: 5.6.1
@@ -1110,6 +1113,11 @@ packages:
     resolution: {integrity: sha512-GBuXPjItZ+XivMxR7bhSjVeXKiHZKRN/HbvqrwVemV6V5atcnIIZbg2J2vJHE6RYHydtPCJoUy05YaK4wQO0TA==}
     dependencies:
       rwlock: 5.0.0
+    dev: false
+
+  /node-watch@0.7.4:
+    resolution: {integrity: sha512-RinNxoz4W1cep1b928fuFhvAQ5ag/+1UlMDV7rbyGthBIgsiEouS4kvRayvvboxii4m8eolKOIBo3OjDqbc+uQ==}
+    engines: {node: '>=6'}
     dev: false
 
   /nodemon@3.0.1:
