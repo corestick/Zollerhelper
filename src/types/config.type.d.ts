@@ -1,3 +1,0 @@
-interface Config {
-  apiUrl: string;
-}

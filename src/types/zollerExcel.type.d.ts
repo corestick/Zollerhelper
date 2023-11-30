@@ -1,13 +1,13 @@
-interface ZollerExcel {
+type ZollerExcel = {
   jobOrderNo: string;
   xNo: number;
-}
+};
 
-interface ZollerExcelFile extends ZollerExcel {
+type ZollerExcelFile = ZollerExcel & {
   sheetDatas: ZollerExcelData[];
-}
+};
 
-interface ZollerExcelData {
+type ZollerExcelData = {
   seqNo: number;
   stepNo: number;
   result: string;
@@ -16,4 +16,4 @@ interface ZollerExcelData {
   lTol?: number;
   actValue: number;
   diffValue: number;
-}
+};
