@@ -6,31 +6,76 @@ import readExcel from "../../common/excel/index.js";
 import watch from "node-watch";
 
 let arrPath: string[] = [];
+let arrRemovePath: string[] = [];
 let baseDate = Date.now();
 
+// 졸러 export 감지 못함, 파일삭제 감지함
 const watchingDir = async (dirPath: string) => {
   watch(
+    dirPath,
+    {
+      recursive: true,
+    },
+    (eventType, fullPath) => {
+      if (fullPath && (eventType === "update" || eventType === "remove")) {
+        const fileName = path.parse(fullPath).name;
+        const ext = path.parse(fullPath).ext;
+
+        if (fileName === _.toNumber(fileName).toString()) {
+          if (ext === ".xls") {
+            if (eventType === "update") {
+              if (!arrPath.includes(fullPath)) {
+                arrPath.push(fullPath);
+                arrPath = _.uniq(arrPath);
+                baseDate = Date.now() + 5000;
+
+                console.log(`${new Date().toLocaleTimeString()}`, arrPath);
+              }
+            }
+
+            if (eventType === "remove") {
+              if (!arrRemovePath.includes(fullPath)) {
+                arrRemovePath.push(fullPath);
+                arrRemovePath = _.uniq(arrRemovePath);
+                baseDate = Date.now() + 5000;
+
+                console.log(
+                  `${new Date().toLocaleTimeString()}`,
+                  arrRemovePath
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  );
+};
+
+// 졸러 export 감지함, 파일삭제 감지 못함
+const watchingDir2 = async (dirPath: string) => {
+  fs.watch(
     dirPath,
     {
       persistent: false,
       recursive: true,
     },
     (eventType, fullPath) => {
-      if (fullPath && eventType === "update") {
+      if (fullPath && eventType === "change") {
         const fileName = path.parse(fullPath).name;
         const ext = path.parse(fullPath).ext;
 
         if (fileName === _.toNumber(fileName).toString()) {
           if (ext === ".xls") {
             if (!arrPath.includes(fullPath)) {
-              arrPath.push(fullPath);
+              arrPath.push(path.join(dirPath, fullPath));
               arrPath = _.uniq(arrPath);
               baseDate = Date.now() + 5000;
+
+              console.log(`${new Date().toLocaleTimeString()}`, arrPath);
             }
           }
         }
-
-        console.log(`${new Date().toLocaleTimeString()}`, arrPath);
       }
     }
   );
@@ -38,7 +83,9 @@ const watchingDir = async (dirPath: string) => {
 
 const startRead = async (dirPath: string): Promise<void> => {
   watchingDir(dirPath);
+  watchingDir2(dirPath);
   sendExcel();
+  removeExcel();
 };
 
 const sendExcel = async () => {
@@ -151,11 +198,121 @@ const sendExcel = async () => {
   }
 };
 
+const removeExcel = async () => {
+  const excelFilePaths: string[] = [];
+
+  try {
+    while (arrRemovePath.length > 0 && excelFilePaths.length < 10) {
+      const strPath = arrRemovePath.shift();
+      if (strPath !== undefined) excelFilePaths.push(strPath);
+      else break;
+    }
+
+    const removableFiles: ZollerExcel[] = [];
+    excelFilePaths.map((el) => {
+      if (!fs.existsSync(el)) {
+        removableFiles.push(getZollerExcel(el));
+      }
+    });
+
+    if (removableFiles.length > 0) {
+      console.log(
+        `\x1b[32m%s\x1b[33m%s\x1b[37m`,
+        `삭제 대상파일 : `,
+        `${removableFiles.length} 개`
+      );
+
+      const sendData = removableFiles;
+
+      const res = await Promise.all(
+        sendData.map((data) => {
+          return nodeFetch(_CONFIG.apiUrl, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json; charset=UTF-8",
+            },
+            body: JSON.stringify(data),
+          });
+        })
+      );
+
+      const succ = _.filter(res, (o) => {
+        return o.status === 200;
+      });
+
+      const fail = _.filter(res, (o) => {
+        return o.status !== 200;
+      });
+
+      const succDatas = await Promise.all(
+        succ.map(async (res) => {
+          const data = JSON.parse(await res.text()).result[0];
+          return { jobOrderNo: data.JobOrderNo, xNo: data.XNo };
+        })
+      );
+
+      if (sendData.length > 0) {
+        console.table([
+          {
+            대상: sendData.length,
+            성공: succ.length,
+            실패: fail.length,
+          },
+        ]);
+      }
+
+      if (fail.length > 0) {
+        while (excelFilePaths.length > 0) {
+          const strPath = excelFilePaths.shift();
+          if (strPath !== undefined) arrRemovePath.push(strPath);
+        }
+        fail.map((el) => {
+          console.log(el);
+        });
+      } else printResult(succDatas);
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.log(err.message);
+      _LOG.error(err.message);
+    }
+
+    while (excelFilePaths.length > 0) {
+      const strPath = excelFilePaths.shift();
+      if (strPath !== undefined) arrRemovePath.push(strPath);
+    }
+
+    baseDate = Date.now() + 30000;
+  } finally {
+    const delay = baseDate - Date.now();
+
+    setTimeout(removeExcel, delay > 5000 ? delay : 5000);
+  }
+};
+
 const convertZollerExcel = (excelInfo: ExcelInfo): ZollerExcelFile => {
+  const { jobOrderNo, xNo } = getZollerExcel(excelInfo.filePath);
+  const sheetDatas = getSheetDatas(excelInfo);
+
+  return {
+    jobOrderNo,
+    xNo,
+    sheetDatas,
+  };
+};
+
+const getZollerExcel = (filePath: string): ZollerExcel => {
   const jobOrderNo = _toString(
-    path.dirname(excelInfo.filePath).toString().split(path.sep).pop()
+    path.dirname(filePath).toString().split(path.sep).pop()
   );
-  const xNo = _toString(path.parse(excelInfo.filePath).name);
+  const xNo = _toString(path.parse(filePath).name);
+  return {
+    jobOrderNo,
+    xNo,
+  };
+};
+
+const getSheetDatas = (excelInfo: ExcelInfo) => {
   const sheetDatas = new Array<ZollerExcelData>();
 
   excelInfo.jsonDatas.map((el) => {
@@ -176,11 +333,7 @@ const convertZollerExcel = (excelInfo: ExcelInfo): ZollerExcelFile => {
     }
   });
 
-  return {
-    jobOrderNo,
-    xNo,
-    sheetDatas,
-  };
+  return sheetDatas;
 };
 
 const printResult = (zollerDatas: ZollerExcel[]): void => {
