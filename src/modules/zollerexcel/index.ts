@@ -25,22 +25,28 @@ const watchingDir = async (dirPath: string) => {
           if (ext === ".xls") {
             if (eventType === "update") {
               if (!arrPath.includes(fullPath)) {
+                baseDate = Date.now() + 5000;
                 arrPath.push(fullPath);
                 arrPath = _.uniq(arrPath);
-                baseDate = Date.now() + 5000;
 
-                console.log(`${new Date().toLocaleTimeString()}`, arrPath);
+                console.log(
+                  `watch ::: ${new Date().toLocaleTimeString()}`,
+                  arrPath
+                );
               }
             }
 
             if (eventType === "remove") {
-              if (!arrRemovePath.includes(fullPath)) {
+              if (
+                !arrRemovePath.includes(fullPath) &&
+                !arrPath.includes(fullPath)
+              ) {
+                baseDate = Date.now() + 5000;
                 arrRemovePath.push(fullPath);
                 arrRemovePath = _.uniq(arrRemovePath);
-                baseDate = Date.now() + 5000;
 
                 console.log(
-                  `${new Date().toLocaleTimeString()}`,
+                  `remove ::: ${new Date().toLocaleTimeString()}`,
                   arrRemovePath
                 );
               }
@@ -68,11 +74,14 @@ const watchingDir2 = async (dirPath: string) => {
         if (fileName === _.toNumber(fileName).toString()) {
           if (ext === ".xls") {
             if (!arrPath.includes(fullPath)) {
+              baseDate = Date.now() + 5000;
               arrPath.push(path.join(dirPath, fullPath));
               arrPath = _.uniq(arrPath);
-              baseDate = Date.now() + 5000;
 
-              console.log(`${new Date().toLocaleTimeString()}`, arrPath);
+              console.log(
+                `watch2 ::: ${new Date().toLocaleTimeString()}`,
+                arrPath
+              );
             }
           }
         }
@@ -90,6 +99,11 @@ const startRead = async (dirPath: string): Promise<void> => {
 
 const sendExcel = async () => {
   //console.log("sendExcel : ", arrPath.length.toString());
+
+  if (baseDate - Date.now() > 0) {
+    setTimeout(sendExcel, baseDate - Date.now());
+    return;
+  }
 
   const excelFilePaths: string[] = [];
 
@@ -199,6 +213,11 @@ const sendExcel = async () => {
 };
 
 const removeExcel = async () => {
+  if (baseDate - Date.now() > 0) {
+    setTimeout(removeExcel, baseDate - Date.now());
+    return;
+  }
+
   const excelFilePaths: string[] = [];
 
   try {
