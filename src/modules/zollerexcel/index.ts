@@ -338,16 +338,31 @@ const getSheetDatas = (excelInfo: ExcelInfo) => {
     const step: string = el[Object.keys(el)[0]];
     if (step !== "") {
       if (Number(step) > 0) {
-        sheetDatas.push({
-          seqNo: sheetDatas.length + 1,
-          stepNo: Number(step),
-          result: _toString(el.__EMPTY),
-          nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
-          uTol: _toString(el.__EMPTY_5).replace(/\\/g, ""),
-          lTol: _toString(el.__EMPTY_7).replace(/\\/g, ""),
-          actValue: _toString(el.__EMPTY_9).replace(/\\/g, ""),
-          diffValue: _toString(el.__EMPTY_14).replace(/\\/g, ""),
-        });
+        if (_toString(el.__EMPTY_8) === "") {
+          // ZM03 양식
+          sheetDatas.push({
+            seqNo: sheetDatas.length + 1,
+            stepNo: Number(step),
+            result: _toString(el.__EMPTY),
+            nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
+            uTol: _toString(el.__EMPTY_5).replace(/\\/g, ""),
+            lTol: _toString(el.__EMPTY_7).replace(/\\/g, ""),
+            actValue: _toString(el.__EMPTY_9).replace(/\\/g, ""),
+            diffValue: _toString(el.__EMPTY_14).replace(/\\/g, ""),
+          });
+        } else {
+          //ZM01양식
+          sheetDatas.push({
+            seqNo: sheetDatas.length + 1,
+            stepNo: Number(step),
+            result: _toString(el.__EMPTY),
+            nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
+            uTol: _toString(el.__EMPTY_4).replace(/\\/g, ""),
+            lTol: _toString(el.__EMPTY_6).replace(/\\/g, ""),
+            actValue: _toString(el.__EMPTY_8).replace(/\\/g, ""),
+            diffValue: _toString(el.__EMPTY_12).replace(/\\/g, ""),
+          });
+        }
       }
     }
   });
