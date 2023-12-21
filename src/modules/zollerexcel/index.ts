@@ -334,35 +334,32 @@ const getZollerExcel = (filePath: string): ZollerExcel => {
 const getSheetDatas = (excelInfo: ExcelInfo) => {
   const sheetDatas = new Array<ZollerExcelData>();
 
+  const arrCol = Array<string>();
+
   excelInfo.jsonDatas.map((el) => {
-    const step: string = el[Object.keys(el)[0]];
+    const step: string = el[Object.keys(el)[0]]; //첫번째 컬럼
+
     if (step !== "") {
+      //컬럼 = 'Step' => 헤드행 데이터가 있는 열을 저장
+      if (step.toLowerCase() === "step") {
+        Object.entries(el).map((el2) => {
+          if (_toString(el2[1]) !== "") {
+            arrCol.push(el2[0]);
+          }
+        });
+      }
+
       if (Number(step) > 0) {
-        if (_toString(el.__EMPTY_8) === "") {
-          // ZM03 양식
-          sheetDatas.push({
-            seqNo: sheetDatas.length + 1,
-            stepNo: Number(step),
-            result: _toString(el.__EMPTY),
-            nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
-            uTol: _toString(el.__EMPTY_5).replace(/\\/g, ""),
-            lTol: _toString(el.__EMPTY_7).replace(/\\/g, ""),
-            actValue: _toString(el.__EMPTY_9).replace(/\\/g, ""),
-            diffValue: _toString(el.__EMPTY_14).replace(/\\/g, ""),
-          });
-        } else {
-          //ZM01양식
-          sheetDatas.push({
-            seqNo: sheetDatas.length + 1,
-            stepNo: Number(step),
-            result: _toString(el.__EMPTY),
-            nomValue: _toString(el.__EMPTY_2).replace(/\\/g, ""),
-            uTol: _toString(el.__EMPTY_4).replace(/\\/g, ""),
-            lTol: _toString(el.__EMPTY_6).replace(/\\/g, ""),
-            actValue: _toString(el.__EMPTY_8).replace(/\\/g, ""),
-            diffValue: _toString(el.__EMPTY_12).replace(/\\/g, ""),
-          });
-        }
+        sheetDatas.push({
+          seqNo: sheetDatas.length + 1,
+          stepNo: Number(step),
+          result: _toString(el[arrCol[1]]),
+          nomValue: _toString(el[arrCol[2]]).replace(/\\/g, ""),
+          uTol: _toString(el[arrCol[3]]).replace(/\\/g, ""),
+          lTol: _toString(el[arrCol[4]]).replace(/\\/g, ""),
+          actValue: _toString(el[arrCol[5]]).replace(/\\/g, ""),
+          diffValue: _toString(el[arrCol[6]]).replace(/\\/g, ""),
+        });
       }
     }
   });
