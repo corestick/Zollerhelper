@@ -350,6 +350,13 @@ const getSheetDatas = (excelInfo: ExcelInfo) => {
       }
 
       if (Number(step) > 0) {
+        // (-) 규격 보정
+        if (Number(el[arrCol[2]]) < 0) {
+          el[arrCol[2]] *= -1;
+          el[arrCol[5]] *= -1;
+          el[arrCol[6]] *= -1;
+        }
+
         sheetDatas.push({
           seqNo: sheetDatas.length + 1,
           stepNo: Number(step),
